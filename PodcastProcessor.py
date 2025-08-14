@@ -99,12 +99,12 @@ class PodcastFrameProcessor:
 
     def download_video(self, youtube_url, output_path="temp_video.mp4"):
         """
-        Baixa o vídeo do YouTube
+        Baixa o vídeo do YouTube sem áudio
         """
-        print(f"📥 Baixando vídeo: {youtube_url}")
+        print(f"📥 Baixando vídeo (sem áudio): {youtube_url}")
         
         ydl_opts = {
-            'format': 'best[height<=720]',  # Qualidade balanceada para performance
+            'format': 'bestvideo[ext=mp4]/best[ext=mp4]/bestvideo/best',  # Apenas vídeo, sem áudio
             'outtmpl': output_path,
             'noplaylist': True,
         }
@@ -112,7 +112,7 @@ class PodcastFrameProcessor:
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 ydl.download([youtube_url])
-            print(f"✅ Vídeo baixado: {output_path}")
+            print(f"✅ Vídeo baixado (sem áudio): {output_path}")
             return output_path
         except Exception as e:
             print(f"❌ Erro ao baixar vídeo: {e}")
