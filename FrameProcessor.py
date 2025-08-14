@@ -217,22 +217,13 @@ class PodcastFrameProcessor:
         """
         emotion_dir = os.path.join(output_dir, emotion)
         os.makedirs(emotion_dir, exist_ok=True)
-        
-        # Nome do arquivo com timestamp e confiança
-        filename = f"{emotion}_{timestamp:.1f}s_conf{confidence:.2f}.jpg"
+    
+        # Salvar como PNG para qualidade sem perdas (arquivo maior)
+        filename = f"{emotion}_{timestamp:.1f}s_conf{confidence:.2f}.png"
         filepath = os.path.join(emotion_dir, filename)
+        png_params = [cv2.IMWRITE_PNG_COMPRESSION, 1]  # Compressão mínima
+        cv2.imwrite(filepath, frame, png_params)
         
-        # Salvar imagem com alta qualidade
-        # Configurações para máxima qualidade JPEG
-        jpeg_params = [cv2.IMWRITE_JPEG_QUALITY, 95]  # Qualidade 95% (máximo recomendado)
-        
-        # Alternativa: salvar como PNG para qualidade sem perdas (arquivo maior)
-        # filename = f"{emotion}_{timestamp:.1f}s_conf{confidence:.2f}.png"
-        # filepath = os.path.join(emotion_dir, filename)
-        # png_params = [cv2.IMWRITE_PNG_COMPRESSION, 1]  # Compressão mínima
-        # cv2.imwrite(filepath, frame, png_params)
-        
-        cv2.imwrite(filepath, frame, jpeg_params)
         return filepath
 
     def process_video(self, video_path, output_dir="output_frames", skip_minutes=10):
