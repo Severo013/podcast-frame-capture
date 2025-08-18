@@ -166,6 +166,7 @@ output_frames/
 frames/
 images/
 videos/
+*.jpg
 
 # Temporary files
 *.tmp
