@@ -9,6 +9,8 @@ import hashlib
 from collections import defaultdict
 import argparse
 from datetime import datetime
+import unicodedata
+import re
 
 # Tentar importar FER para reconhecimento de emoções
 try:
@@ -111,12 +113,52 @@ class PodcastFrameProcessor:
         
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                # Extrair informações do vídeo primeiro
+                info = ydl.extract_info(youtube_url, download=False)
+                video_title = info.get('title', 'video_sem_titulo')
+                
+                # Limpar o título para usar como nome de pasta
+                clean_title = self.sanitize_title(video_title)
+                
                 ydl.download([youtube_url])
             print(f"✅ Vídeo baixado (sem áudio): {output_path}")
-            return output_path
+            print(f"📺 Título: {video_title}")
+            return output_path, clean_title
         except Exception as e:
             print(f"❌ Erro ao baixar vídeo: {e}")
-            return None
+            return None, None
+
+    def sanitize_title(self, title):
+        """
+        Limpa o título do vídeo removendo acentos, caracteres especiais e substituindo espaços por underlines
+        """
+        # Remover acentos
+        title = unicodedata.normalize('NFD', title)
+        title = ''.join(char for char in title if unicodedata.category(char) != 'Mn')
+        
+        # Remover caracteres especiais e manter apenas letras, números, espaços e alguns caracteres seguros
+        title = re.sub(r'[^\w\s\-_]', '', title)
+        
+        # Substituir múltiplos espaços por um único espaço
+        title = re.sub(r'\s+', ' ', title)
+        
+        # Substituir espaços por underlines
+        title = title.replace(' ', '_')
+        
+        # Remover underlines múltiplos
+        title = re.sub(r'_+', '_', title)
+        
+        # Remover underlines no início e fim
+        title = title.strip('_')
+        
+        # Limitar tamanho a 100 caracteres
+        title = title[:100]
+        
+        # Se ficou vazio, usar nome padrão
+        if not title:
+            title = 'video_sem_titulo'
+            
+        return title
 
     def is_blurry(self, image):
         """
@@ -399,7 +441,7 @@ class PodcastFrameProcessor:
 def main():
     parser = argparse.ArgumentParser(description='🎙️ Processador de Frames de Emoções em Podcasts')
     parser.add_argument('url', help='URL do YouTube do podcast')
-    parser.add_argument('--output', '-o', default='output_frames', help='Diretório de saída')
+    parser.add_argument('--output', '-o', default=None, help='Diretório de saída (padrão: nome do vídeo)')
     parser.add_argument('--skip-minutes', '-s', type=int, default=10, 
                        help='Minutos a pular no início (padrão: 10)')
     parser.add_argument('--emotion-threshold', '-e', type=float, default=0.7,
@@ -418,13 +460,19 @@ def main():
         return
     
     # Baixar vídeo
-    video_path = processor.download_video(args.url)
+    result = processor.download_video(args.url)
     
-    if video_path:
+    if result and len(result) == 2:
+        video_path, video_title = result
+        
+        # Determinar diretório de saída
+        output_dir = args.output if args.output else video_title
+        print(f"📁 Diretório de saída: {output_dir}")
+        
         try:
             # Processar vídeo
-            processor.process_video(video_path, args.output, args.skip_minutes)
-            print(f"\n🎉 Processamento concluído! Frames salvos em: {args.output}")
+            processor.process_video(video_path, output_dir, args.skip_minutes)
+            print(f"\n🎉 Processamento concluído! Frames salvos em: {output_dir}")
         except Exception as e:
             print(f"❌ Erro durante processamento: {e}")
         finally:
