@@ -106,7 +106,7 @@ class PodcastFrameProcessor:
         print(f"📥 Baixando vídeo (sem áudio): {youtube_url}")
         
         ydl_opts = {
-            'format': 'bestvideo[ext=mp4]/best[ext=mp4]/bestvideo/best',  # Apenas vídeo, sem áudio
+            'format': '399/bestvideo[height<=1080][ext=mp4]/bestvideo[height<=1080]/best[height<=1080]',  # Priorizar formato 399 (1080p), sem áudio
             'outtmpl': output_path,
             'noplaylist': True,
         }
@@ -121,7 +121,7 @@ class PodcastFrameProcessor:
                 clean_title = self.sanitize_title(video_title)
                 
                 ydl.download([youtube_url])
-            print(f"✅ Vídeo baixado (sem áudio): {output_path}")
+            print(f"✅ Vídeo baixado em 1080p (formato 399, sem áudio): {output_path}")
             print(f"📺 Título: {video_title}")
             return output_path, clean_title
         except Exception as e:
