@@ -167,6 +167,7 @@ frames/
 images/
 videos/
 *.jpg
+*.webp
 
 # Temporary files
 *.tmp

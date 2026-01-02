@@ -88,7 +88,7 @@ class PodcastFrameProcessor:
         # Controle de duplicatas
         self.captured_emotions = defaultdict(list)
         self.last_emotion_time = defaultdict(float)
-        self.min_time_between_same_emotion = 30  # segundos
+        self.min_time_between_same_emotion = 5  # segundos
         
         # Estatísticas
         self.stats = {
@@ -352,7 +352,7 @@ class PodcastFrameProcessor:
         cap.set(cv2.CAP_PROP_POS_FRAMES, skip_frames)
         
         # Processar a cada N frames para eficiência
-        frame_skip = max(1, int(fps // 2))  # Processar 2 frames por segundo
+        frame_skip = max(1, int(fps // 3))  # Processar 3 frames por segundo
         frame_count = skip_frames
         
         print(f"⏭️ Pulando {skip_minutes} minutos iniciais...")
