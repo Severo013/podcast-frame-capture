@@ -99,7 +99,7 @@ class PodcastFrameProcessor:
             'saved_frames': 0
         }
 
-    def download_video(self, youtube_url, output_path="temp_video.mp4"):
+    def download_video(self, youtube_url, output_path="temp_video.mp4", cookies_file=None, browser="chrome"):
         """
         Baixa o vídeo do YouTube sem áudio
         """
@@ -109,23 +109,41 @@ class PodcastFrameProcessor:
             'format': '399/bestvideo[height<=1080][ext=mp4]/bestvideo[height<=1080]/best[height<=1080]',  # Priorizar formato 399 (1080p), sem áudio
             'outtmpl': output_path,
             'noplaylist': True,
+            'retries': 3,
+            'fragment_retries': 3,
+            'socket_timeout': 30,
+            'remote_components': ['ejs:github'],
+            'extractor_args': {
+                'youtube': {
+                    'player_client': ['android', 'web', 'web_safari']
+                }
+            }
         }
-        
+
+        if cookies_file and os.path.exists(cookies_file):
+            print(f"🍪 Usando arquivo de cookies: {cookies_file}")
+            ydl_opts['cookiefile'] = cookies_file
+        else:
+            print(f"🔐 Tentando usar cookies do navegador para autenticação ({browser})...")
+            ydl_opts['cookies_from_browser'] = (browser,)
+
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 # Extrair informações do vídeo primeiro
                 info = ydl.extract_info(youtube_url, download=False)
                 video_title = info.get('title', 'video_sem_titulo')
-                
+
                 # Limpar o título para usar como nome de pasta
                 clean_title = self.sanitize_title(video_title)
-                
+
                 ydl.download([youtube_url])
             print(f"✅ Vídeo baixado em 1080p (formato 399, sem áudio): {output_path}")
             print(f"📺 Título: {video_title}")
             return output_path, clean_title
         except Exception as e:
             print(f"❌ Erro ao baixar vídeo: {e}")
+            if not cookies_file:
+                print("💡 Dica: exporte cookies para um arquivo .txt e use --cookies-file para maior confiabilidade.")
             return None, None
 
     def sanitize_title(self, title):
@@ -442,6 +460,10 @@ def main():
     parser = argparse.ArgumentParser(description='🎙️ Processador de Frames de Emoções em Podcasts')
     parser.add_argument('url', help='URL do YouTube do podcast')
     parser.add_argument('--output', '-o', default=None, help='Diretório de saída (padrão: nome do vídeo)')
+    parser.add_argument('--cookies-file', default=None,
+                       help='Caminho para cookies exportados do YouTube (.txt)')
+    parser.add_argument('--browser', default='chrome', choices=['chrome', 'firefox', 'edge', 'opera', 'brave', 'vivaldi'],
+                       help='Navegador para extrair cookies automaticamente (padrão: chrome)')
     parser.add_argument('--skip-minutes', '-s', type=int, default=10, 
                        help='Minutos a pular no início (padrão: 10)')
     parser.add_argument('--emotion-threshold', '-e', type=float, default=0.7,
@@ -460,9 +482,13 @@ def main():
         return
     
     # Baixar vídeo
-    result = processor.download_video(args.url)
+    result = processor.download_video(
+        args.url,
+        cookies_file=args.cookies_file,
+        browser=args.browser
+    )
     
-    if result and len(result) == 2:
+    if result and len(result) == 2 and result[0] is not None and result[1] is not None:
         video_path, video_title = result
         
         # Determinar diretório de saída
@@ -477,11 +503,11 @@ def main():
             print(f"❌ Erro durante processamento: {e}")
         finally:
             # Limpar arquivo temporário
-            if os.path.exists(video_path):
+            if video_path and os.path.exists(video_path):
                 os.remove(video_path)
                 print(f"🗑️ Arquivo temporário removido: {video_path}")
     else:
-        print("❌ Falha ao baixar o vídeo")
+        print("❌ Falha ao baixar o vídeo. Verifique a URL e sua conexão com a internet.")
 
 if __name__ == "__main__":
     main()
